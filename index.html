@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RugDoc Revoke</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
+    <!-- Bootstrap JavaScript Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-u1OknCvxWvY5kfmNBILK2hRnQC3Pr17a+RTT6rIHI7NnikvbZlHgTPOOmMi466C8" crossorigin="anonymous"></script>
+    <!-- AJAX JQuery -->
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.8.0/dist/htmx.min.js"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Web3.js -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <!-- Revoke Config -->
+    <script type="text/javascript" src="config.js"></script>
+</head>
+
+<body>
+    <div class="py-3 px-4 mx-auto">
+        <div id="overview">
+            <h1>Overview</h1>
+            <h3>Account: <span class="showAccount" x-data="" x-text="getAccount"></span></h3>
+            <h3>Balance: <span class="showBalance" x-data="" x-text="getBalance"></span></h3>
+            <h3>GasPrice: <span class="showGasPrice" x-data="" x-text="getGasPrice"></span> GWEI</h3>
+            <h3>Chain: <span class="showChain" x-data="" x-text="getChainName"></span> | ID: <span class="showChain" x-data="" x-text="getChainId"></span></h3>
+            <button x-data="" @click="writeTestAllowance" class="btn btn-primary text-nowrap mt-3">Write Test Allowance</button>
+        </div>
+
+        <div id="approval" style="margin-top:20px">
+            <h1>Approval Checker</h1>
+            <form class="col-md-6">
+                <label for="approvalOwnerAddress" class="mt-2">Your Wallet Address</label>
+                <input id="approvalOwnerAddress" type="text" name="owner-address" class="form-control mt-1" style="background: lightgray;" readonly>
+                <label for="approvalContractAddress" class="mt-2">Contract Address</label>
+                <input id="approvalContractAddress" x-data="" @keydown="checkApproval" type="text" name="contract-address" class="form-control mt-1" placeholder="Please add contract address">
+            </form>
+            <button id="approvalCheckButton" x-data="" @click="checkApproval" class="btn btn-primary text-nowrap mt-3">Check Approval JS</button>
+            <div id="contractApprovalList" class="mt-3 col-md-9"></div>
+        </div>
+    </div>   
+</body>
+
+<script>
+    // *** Initialize MetaMask *** //
+    if (typeof window.ethereum !== 'undefined') {
+        metamask = window.ethereum
+        console.log("MetaMask installed!");
+    } 
+    else {
+        console.log("MetaMask not found!")
+    }
+
+    // *** Initialize Web3.js *** //
+    const web3 = new Web3(metamask)
+
+    // *** MetaMask Handler *** //
+    metamask.on('accountsChanged', function (accounts) {
+        location.reload();
+    });
+    metamask.on('chainChanged', function (networkId) {
+        location.reload();
+    });
+
+    // *** Connect Metamask on page load *** //
+    window.onload = async function() {
+        getAccount();
+        getBalance();
+        getGasPrice();
+        getChainId();
+    };
+
+    // *** Variables *** //
+    let chainName = "";
+
+    // *** Functions *** //
+    async function getAccount() {
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
+            .catch(e => console.error(e.message));
+        account = accounts[0];
+        document.querySelector('#approvalOwnerAddress').value = account;
+        return account;
+    }
+
+    async function getChainId() {
+        const chainId = await ethereum.request({ method: 'eth_chainId' })
+            .catch(e => console.error(e.message));
+        return parseInt(chainId, 16);
+    }
+
+    async function getChainName() {
+        const chainId = await getChainId();
+        const chainNames = {
+            250: "Fantom",
+            1337: "Ethereum",
+            137: "Polygon",
+        };
+        return chainId in chainNames ? chainNames[chainId] : `Unknown [ID: ${chainId}]`;
+    }
+
+    async function getGasPrice() {
+        const gasPriceInWei = await web3.eth.getGasPrice()
+            .catch(e => console.error(e.message));
+        const gasPrice = Web3.utils.fromWei(gasPriceInWei, 'gwei');
+        return gasPrice;
+    }
+
+    async function getBalance() {
+        const walletAddress = await getAccount()
+            .catch(e => console.error(e.message));
+        const walletBalanceInWei = await web3.eth.getBalance(walletAddress)
+            .catch(e => console.error(e.message));
+        const walletBalance = Web3.utils.fromWei(walletBalanceInWei);
+        return walletBalance;
+    }
+
+    async function checkApproval() {
+        const chainName = await getChainName()
+        const chainToken = config.Token[chainName]
+
+        if (!chainToken || Object.keys(chainToken).length == 0) {
+            document.getElementById('contractApprovalList').innerHTML = `
+                <div class="alert alert-warning alert-dismissible fade show col-md-6">
+                    <div>Chain not yet supported. Please send us a request..</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `
+            return
+        }
+        
+        // Start Allowance Table
+        let templateApprovalList = `
+            <table class="table">
+                <thead class="thead-dark">
+                    <tr>
+                        <th scope="col">Token</th>
+                        <th scope="col">Chain</th>
+                        <th scope="col">Approved Amount</th>
+                        <th scope="col">Revoke</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `
+
+        const contractAddress = document.querySelector('#approvalContractAddress').value
+        let fetchAllowanceError = 0
+
+        // Check Allowance for each Chain Token
+        for (token in chainToken) {
+            const tokenSymbol = chainToken[token]["symbol"]
+            const tokenAddress = chainToken[token]["address"]
+            const tokenAbi = JSON.parse(chainToken[token]["abi"])
+            const thresholdAllowance = 1000000000000
+
+            try {
+                if (web3.utils.isAddress(contractAddress)) {
+                    const tokenContract = new web3.eth.Contract(tokenAbi, tokenAddress)
+                    const allowance = await tokenContract.methods.allowance(web3.currentProvider.selectedAddress, contractAddress).call()
+                    console.log(`Allowance for ${tokenSymbol}: ${allowance}`)
+
+                    templateApprovalList += `
+                        <tr>
+                            <td>${tokenSymbol}</td>
+                            <td>${chainName}</td>
+                            <td ${allowance > thresholdAllowance ? 'style="color: red"' : ''}>${allowance > thresholdAllowance ? 'Unlimited' : allowance}</td>
+                            <td><button id="btnRevokeApprovalToken${tokenSymbol}" @click="revokeApproval('${chainName}', '${token}', '${contractAddress}')" class="btn btn-primary">Revoke</button></td>
+                        </tr>
+                    `
+                }
+                else {
+                    fetchAllowanceError = 1
+                    const templateAddressWarning = `
+                        <div class="alert alert-warning alert-dismissible fade show col-md-6">
+                            <div>Please enter a valid address..</div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    `
+                    document.getElementById('contractApprovalList').innerHTML = templateAddressWarning
+                }
+            }
+            catch (e) {
+                console.error(e.message)
+            }
+        }
+
+        // End Allowance Table
+        templateApprovalList += `
+                </tbody>
+            </table>
+        `
+
+        if (!fetchAllowanceError) {
+            document.getElementById('contractApprovalList').innerHTML = templateApprovalList
+        }
+    }
+
+    async function revokeApproval(chainName, token, spender) {
+        const chainToken = config.Token[chainName]
+        const tokenAddress = chainToken[token]["address"]
+        const tokenAbi = JSON.parse(chainToken[token]["abi"])
+        const tokenContract = new web3.eth.Contract(tokenAbi, tokenAddress)
+        console.log(`Success: Calling Revoke Function for Token [${token} | Address: ${tokenAddress}] and Spender Address ${spender}`)
+        const tx = await tokenContract.methods.approve(spender, 0).send({
+            from: web3.currentProvider.selectedAddress,
+        }).on('receipt', data => console.log(data))
+        .catch(e => console.error(e.message))
+    }
+</script>
+
+</html>
