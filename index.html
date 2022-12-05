@@ -96,9 +96,10 @@
     async function getChainName() {
         const chainId = await getChainId();
         const chainNames = {
-            250: "Fantom",
-            1337: "Ethereum",
+            1: "Ethereum",
             137: "Polygon",
+            250: "Fantom",
+            1337: "HardHat",
         };
         return chainId in chainNames ? chainNames[chainId] : `Unknown [ID: ${chainId}]`;
     }
