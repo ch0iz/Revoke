@@ -22,18 +22,18 @@
     <script type="text/javascript" src="config.js"></script>
 </head>
 
-<body style="background-color: #0c1219">
+<body style="background-color: #0c1219; color: #6d84a2">
     <div class="py-3 px-4 mx-auto">
         <div id="approval" style="margin-top:20px">
             <form class="col-md-6">
-                <label for="approvalOwnerAddress" class="mt-2" style="color:#6d84a2">Your Wallet Address</label>
+                <label for="approvalOwnerAddress" class="mt-2">Your Wallet Address</label>
                 <input id="approvalOwnerAddress" type="text" name="owner-address" class="form-control mt-1" style="background: lightgray;" readonly>
-                <label for="approvalContractAddress" class="mt-2" style="color:#6d84a2">Contract Address</label>
+                <label for="approvalContractAddress" class="mt-2">Contract Address</label>
                 <input id="approvalContractAddress" x-data="" @keydown="checkApproval" type="text" name="contract-address" class="form-control mt-1" placeholder="Please add contract address">
             </form>
             <button id="approvalCheckButton" x-data="" @click="checkApproval" class="btn btn-primary text-nowrap mt-3">Check Approval</button>
             <div id="contractApprovalList" class="mt-3 col-md-9"></div>
-            <p style="font-family: arboria,Sans-Serif; font-size:14px; color:#6d84a2">Currently supoprted Chains and Tokens: Polygon (USDC, USDT, DAI), Ethereum (USDC, USDT, DAI), Fantom (USDC)</p>
+            <p style="font-family: arboria,Sans-Serif; font-size:14px">Currently supoprted Chains and Tokens: Polygon (USDC, USDT, DAI), Ethereum (USDC, USDT, DAI), Fantom (USDC)</p>
         </div>
     </div>   
 </body>
