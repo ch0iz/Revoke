@@ -25,7 +25,8 @@
 <body style="background-color: #0c1219; color: #6d84a2">
     <div class="py-3 px-4 mx-auto">
         <div id="approval" style="margin-top:20px">
-            <p style="font-size: 35px; font-weight: bold; color: rgb(123, 208, 221)">Please enter a contract address to check approvals</h1>
+            <p style="font-size: 35px; font-weight: bold; color: rgb(123, 208, 221)">Please enter a contract address to check approvals</p>
+            <button id="connectWallet" class="btn btn-primary text-nowrap mt-3" onclick="getAccount()">Connect</button>
             <form class="col-md-6">
                 <label for="approvalOwnerAddress" class="mt-2">Your Wallet Address</label>
                 <input id="approvalOwnerAddress" type="text" name="owner-address" class="form-control mt-1" style="background: lightgray;" readonly>
