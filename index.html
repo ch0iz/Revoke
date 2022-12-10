@@ -120,6 +120,7 @@
     }
 
     async function checkApproval() {
+        document.querySelector('#approvalCheckButton').innerHTML = "Requesting Approvals.."
         const chainName = await getChainName()
         const chainToken = config.Token[chainName]
 
@@ -196,6 +197,7 @@
 
         if (!fetchAllowanceError) {
             document.getElementById('contractApprovalList').innerHTML = templateApprovalList
+            document.querySelector('#approvalCheckButton').innerHTML = "Check Approval"
         }
     }
 
