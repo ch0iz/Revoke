@@ -79,7 +79,7 @@
     async function isConnected() {
         const accounts = await ethereum.request({method: 'eth_accounts'});       
         if (accounts.length) {
-            console.log(`You're connected to: ${accounts[0]}`);
+            console.log(`Metamask is connected with: ${accounts[0]}`);
             document.querySelector('#connectWallet').innerHTML = "Connected";
         } else {
             console.log("Metamask is not connected");
